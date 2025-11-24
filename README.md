@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> 5558c2f4fa0d816382b3ac4294ac0ced9a898e8d
 # Nexus Prime: Apex-Impact Architecture
 
 ## Overview
