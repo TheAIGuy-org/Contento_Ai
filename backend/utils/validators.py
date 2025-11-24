@@ -9,7 +9,7 @@ from backend.core.state import UserConfig
 class InputValidator:
     """Validate user inputs"""
     
-    VALID_PLATFORMS = ["linkedin", "twitter", "blog", "instagram", "youtube"]
+    VALID_PLATFORMS = ["linkedin", "twitter", "blog"]
     VALID_AVATARS = ["stark", "musk", "jobs", "goggins", "viral_bro", "custom"]
     
     @staticmethod

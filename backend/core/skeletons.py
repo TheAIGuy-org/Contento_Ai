@@ -16,9 +16,9 @@ class ViralDNA(BaseModel):
 # Intent to DNA mapping
 INTENT_TO_DNA_MAP = {
     'educational': ['linkedin', 'blog', 'twitter'],
-    'inspirational': ['linkedin', 'instagram'],
+    'inspirational': ['linkedin', 'blog', 'twitter'],
     'controversial': ['twitter', 'linkedin'],
-    'story': ['linkedin', 'instagram'],
+    'story': ['linkedin', 'blog', 'twitter'],
     'data': ['linkedin', 'blog', 'twitter'],
     'list': ['twitter', 'linkedin'],
     'opinion': ['twitter', 'linkedin']

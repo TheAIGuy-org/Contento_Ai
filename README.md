@@ -1,8 +1,3 @@
-# ============================================================================
-# FILE: README.md
-# ============================================================================
-
-"""
 # Nexus Prime: Apex-Impact Architecture
 
 ## Overview
@@ -129,8 +124,6 @@ config = UserConfig(
 - LinkedIn (Scroll-Stopper format)
 - Twitter (Velocity Thread format)
 - Blog (SEO Optimized format)
-- Instagram (Visual Hook format)
-- YouTube (Watch Time Maximizer format)
 
 ## Project Structure
 

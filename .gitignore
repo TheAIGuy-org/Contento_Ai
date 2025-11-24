@@ -1,2 +1,5 @@
 /.env
 /venv
+/alternate_ui.txt
+__pycache__/
+*.pyc
