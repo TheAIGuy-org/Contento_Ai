@@ -1,0 +1,17 @@
+# Core LangChain & LangGraph
+langchain
+langgraph
+langchain-groq
+
+# LLM & Search
+groq
+tavily-python
+
+# Text Processing & Metrics
+textstat
+beautifulsoup4
+
+# Utilities
+python-dotenv
+pydantic
+pydantic-settings

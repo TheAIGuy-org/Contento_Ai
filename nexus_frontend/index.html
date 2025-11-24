@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS PRIME | Cognitive Content Engine</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #050505;
+            color: #e2e8f0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #262626;
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #404040;
+        }
+
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .glass-card {
+            background: linear-gradient(145deg, rgba(30, 30, 30, 0.6), rgba(20, 20, 20, 0.4));
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        @keyframes scanline {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(100%);
+            }
+        }
+
+        .scan-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.1), transparent);
+            animation: scanline 3s linear infinite;
+            pointer-events: none;
+        }
+
+        .typing-cursor::after {
+            content: '▋';
+            margin-left: 2px;
+            animation: blink 1s step-start infinite;
+            color: #3b82f6;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .node-glow-active {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+            border-color: #3b82f6;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+            width: 100%;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        input[type=range]::-moz-range-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: none;
+        }
+
+        input[type=range]::-moz-range-track {
+            width: 100%;
+            height: 4px;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .log-entry {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const NeuralGraph = ({ activeNode }) => {
+            const nodes = [
+                { id: 'context_injection', label: 'Context', icon: '⚙️', y: 5 },
+                { id: 'research', label: 'Deep Diver', icon: '🔍', y: 15 },
+                { id: 'intent_analyzer', label: 'Intent', icon: '🧠', y: 25 },
+                { id: 'router', label: 'Router', icon: '🔀', y: 35 },
+                { id: 'blueprint_synthesizer', label: 'Synthesizer', icon: '📐', y: 45 },
+                { id: 'writer', label: 'Architect', icon: '✍️', y: 55 },
+                { id: 'optimizer', label: 'Optimizer', icon: '🛡️', y: 70 },
+                { id: 'director', label: 'Director', icon: '👓', y: 85 },
+                { id: 'decision', label: 'Decision', icon: '✅', y: 95 }
+            ];
+
+            return (
+                <div style={{ position: 'relative', height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', padding: '1rem 0', gap: '0.5rem' }}>
+                    <div style={{ position: 'absolute', left: '50%', top: '2rem', bottom: '2rem', width: '2px', background: '#1f2937', transform: 'translateX(-50%)', zIndex: 0 }}></div>
+
+                    {nodes.map((node, index) => {
+                        const isActive = activeNode === node.id;
+                        const isPast = nodes.findIndex(n => n.id === activeNode) > index;
+
+                        return (
+                            <div
+                                key={node.id}
+                                style={{
+                                    position: 'relative',
+                                    zIndex: 10,
+                                    width: '15rem',
+                                    padding: '0.5rem',
+                                    borderRadius: '0.5rem',
+                                    border: isActive ? '2px solid #3b82f6' : isPast ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid #374151',
+                                    background: isActive ? 'rgba(37, 99, 235, 0.2)' : isPast ? 'rgba(31, 41, 55, 0.5)' : 'rgba(31, 41, 55, 0.3)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    fontSize: '0.875rem',
+                                    transition: 'all 0.5s',
+                                    opacity: isActive ? 1 : isPast ? 0.6 : 0.4,
+                                    boxShadow: isActive ? '0 0 20px rgba(59, 130, 246, 0.6)' : 'none'
+                                }}
+                            >
+                                <div style={{
+                                    padding: '0.375rem',
+                                    borderRadius: '0.5rem',
+                                    background: isActive ? '#3b82f6' : isPast ? 'rgba(34, 197, 94, 0.2)' : '#374151',
+                                    color: isActive ? 'white' : isPast ? '#22c55e' : '#6b7280',
+                                    fontSize: '0.75rem'
+                                }}>
+                                    {node.icon}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <h3 style={{
+                                        fontSize: '0.75rem',
+                                        fontWeight: 'bold',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        color: isActive ? 'white' : '#9ca3af',
+                                        margin: 0
+                                    }}>
+                                        {node.label}
+                                    </h3>
+                                    {isActive && <span style={{ fontSize: '0.625rem', color: '#60a5fa' }}>Active</span>}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        };
+
+        const MetricGauge = ({ label, value, subtitle = "" }) => {
+            const radius = 30;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (value / 100) * circumference;
+            const colorClass = value > 80 ? "#22c55e" : value > 50 ? "#eab308" : "#ef4444";
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ position: 'relative', width: '5rem', height: '5rem' }}>
+                        <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                            <circle cx="40" cy="40" r={radius} stroke="#1f2937" strokeWidth="6" fill="transparent" />
+                            <circle
+                                cx="40" cy="40" r={radius}
+                                stroke={colorClass}
+                                strokeWidth="6"
+                                fill="transparent"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={offset}
+                                strokeLinecap="round"
+                                style={{ transition: 'stroke-dashoffset 1s ease-out' }}
+                            />
+                        </svg>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: colorClass }}>{Math.round(value)}</span>
+                        </div>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 'bold' }}>{label}</span>
+                    {subtitle && <span style={{ fontSize: '0.625rem', color: '#6b7280' }}>{subtitle}</span>}
+                </div>
+            );
+        };
+
+        const AvatarCard = ({ id, name, icon, desc, selected, onClick }) => (
+            <div
+                onClick={() => onClick(id)}
+                style={{
+                    cursor: 'pointer',
+                    padding: '1.5rem',
+                    borderRadius: '0.75rem',
+                    border: selected ? '2px solid #3b82f6' : '1px solid #374151',
+                    background: selected ? 'rgba(37, 99, 235, 0.2)' : 'linear-gradient(145deg, rgba(30,30,30,0.6), rgba(20,20,20,0.4))',
+                    transition: 'all 0.3s',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    height: '100%',
+                    boxShadow: selected ? '0 0 20px rgba(59, 130, 246, 0.3)' : 'none'
+                }}
+                onMouseEnter={(e) => {
+                    if (!selected) {
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                        e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                    }
+                }}
+                onMouseLeave={(e) => {
+                    if (!selected) {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.borderColor = '#374151';
+                    }
+                }}
+            >
+                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>{icon}</div>
+                <h3 style={{ fontWeight: 'bold', color: 'white', margin: 0 }}>{name}</h3>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', lineHeight: '1.5', margin: 0 }}>{desc}</p>
+            </div>
+        );
+
+        const CustomAvatarBuilder = ({ isOpen, onClose, onSave, initialParams }) => {
+            const [params, setParams] = useState(initialParams || {
+                formality: 5,
+                intensity: 5,
+                humor: 5,
+                technical_depth: 5,
+                emoji_usage: 5
+            });
+
+            if (!isOpen) return null;
+
+            const Slider = ({ label, value, onChange, leftLabel, rightLabel }) => (
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 'bold' }}>
+                        <span>{label}</span>
+                        <span style={{ color: '#3b82f6' }}>{value}/10</span>
+                    </div>
+                    <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={value}
+                        onChange={(e) => onChange(parseInt(e.target.value))}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.625rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                        <span>{leftLabel}</span>
+                        <span>{rightLabel}</span>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 50,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    backdropFilter: 'blur(4px)'
+                }} className="fade-in">
+                    <div className="glass-panel" style={{
+                        width: '100%',
+                        maxWidth: '32rem',
+                        padding: '2rem',
+                        borderRadius: '1rem',
+                        border: '1px solid rgba(59, 130, 246, 0.3)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ color: '#3b82f6' }}>⚙️</span>
+                                Custom DNA Architect
+                            </h2>
+                            <button
+                                onClick={onClose}
+                                style={{ color: '#9ca3af', cursor: 'pointer', background: 'none', border: 'none', fontSize: '1.5rem', padding: 0, lineHeight: 1 }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <Slider label="Formality" value={params.formality} onChange={v => setParams({ ...params, formality: v })} leftLabel="Casual" rightLabel="Corporate" />
+                        <Slider label="Intensity" value={params.intensity} onChange={v => setParams({ ...params, intensity: v })} leftLabel="Calm" rightLabel="Aggressive" />
+                        <Slider label="Humor" value={params.humor} onChange={v => setParams({ ...params, humor: v })} leftLabel="Serious" rightLabel="Comedy" />
+                        <Slider label="Tech Depth" value={params.technical_depth} onChange={v => setParams({ ...params, technical_depth: v })} leftLabel="Simple" rightLabel="Deep Tech" />
+                        <Slider label="Emoji Density" value={params.emoji_usage} onChange={v => setParams({ ...params, emoji_usage: v })} leftLabel="None" rightLabel="Heavy" />
+
+                        <button
+                            onClick={() => onSave(params)}
+                            style={{
+                                width: '100%',
+                                marginTop: '2rem',
+                                padding: '0.75rem',
+                                backgroundColor: '#3b82f6',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                borderRadius: '0.75rem',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.3s',
+                                fontSize: '1rem'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                        >
+                            Apply Custom Persona
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [view, setView] = useState('setup');
+            const [config, setConfig] = useState({
+                topic: "",
+                platform: "linkedin",
+                avatar: "stark",
+                custom_params: null
+            });
+            const [isCustomBuilderOpen, setIsCustomBuilderOpen] = useState(false);
+            const [status, setStatus] = useState('idle');
+            const [logs, setLogs] = useState([]);
+            const [activeNode, setActiveNode] = useState(null);
+            const [draftText, setDraftText] = useState("");
+            const [metrics, setMetrics] = useState({
+                creative: 0,
+                compliance: 0,
+                engagement: 0,
+                iterations: 0,
+                hookScore: 0,
+                keywordDensity: 0,
+                factsUsage: 0
+            });
+            const [contextData, setContextData] = useState({
+                intent: '',
+                keyword: '',
+                skeletonUsed: '',
+                customBlueprint: false
+            });
+            const [finalOutput, setFinalOutput] = useState(null);
+            const ws = useRef(null);
+            const logEndRef = useRef(null);
+
+            useEffect(() => {
+                if (logEndRef.current) {
+                    logEndRef.current.scrollIntoView({ behavior: "smooth" });
+                }
+            }, [logs]);
+
+            const addLog = (node, message) => {
+                setLogs(prev => [...prev, {
+                    id: Date.now(),
+                    time: new Date().toLocaleTimeString([], { hour12: false }),
+                    node,
+                    message
+                }]);
+            };
+
+            const startWorkflow = () => {
+                if (!config.topic) return;
+
+                setView('war-room');
+                setStatus('connecting');
+                setLogs([]);
+                setDraftText("");
+                setFinalOutput(null);
+                setMetrics({ creative: 0, compliance: 0, engagement: 0, iterations: 0, hookScore: 0, keywordDensity: 0, factsUsage: 0 });
+                setContextData({ intent: '', keyword: '', skeletonUsed: '', customBlueprint: false });
+
+                ws.current = new WebSocket("ws://localhost:8000/ws/generate");
+
+                ws.current.onopen = () => {
+                    setStatus('processing');
+                    addLog("SYSTEM", "Neural Link Established");
+
+                    const payload = {
+                        topic: config.topic,
+                        platform: config.platform,
+                        avatar: config.avatar,
+                        custom_params: config.avatar === 'custom' ? config.custom_params : null
+                    };
+                    ws.current.send(JSON.stringify(payload));
+                };
+
+                ws.current.onmessage = (event) => {
+                    const payload = JSON.parse(event.data);
+
+                    if (payload.type === 'state_update') {
+                        setActiveNode(payload.node);
+                        const data = payload.data;
+
+                        if (payload.node === 'context_injection') {
+                            addLog("CONTEXT", data.message || "Loading persona...");
+                        }
+                        if (payload.node === 'research') {
+                            addLog("RESEARCH", data.message || `Found ${data.facts_count || 0} facts`);
+                        }
+                        if (payload.node === 'intent_analyzer') {
+                            addLog("INTENT", data.message || "Analyzing...");
+                            setContextData(prev => ({ ...prev, intent: data.intent || '', keyword: data.primary_keyword || '' }));
+                        }
+                        if (payload.node === 'router') {
+                            addLog("ROUTER", data.message || "Routing DNA...");
+                            setContextData(prev => ({ ...prev, skeletonUsed: data.skeleton_name || '' }));
+                        }
+                        if (payload.node === 'blueprint_synthesizer') {
+                            addLog("SYNTHESIZER", data.message || "Processing...");
+                            setContextData(prev => ({ ...prev, customBlueprint: data.custom_blueprint || false }));
+                        }
+                        if (payload.node === 'writer') {
+                            if (data.full_text) setDraftText(data.full_text);
+                            addLog("WRITER", data.message || `Revision #${data.revision || 1}`);
+                            setMetrics(prev => ({ ...prev, hookScore: (data.hook_score || 0) * 10 }));
+                        }
+                        if (payload.node === 'optimizer') {
+                            addLog("OPTIMIZER", data.message || "Analyzing...");
+                            setMetrics(prev => ({
+                                ...prev,
+                                compliance: data.compliance_score || 0,
+                                engagement: (data.engagement_score || 0) * 10,
+                                keywordDensity: data.keyword_density || 0,
+                                factsUsage: data.facts_usage_rate || 0
+                            }));
+                        }
+                        if (payload.node === 'director') {
+                            addLog("DIRECTOR", data.message || `Score: ${data.creative_score}/10`);
+                            setMetrics(prev => ({ ...prev, creative: (data.creative_score || 0) * 10 }));
+                        }
+                        if (payload.node === 'decision') {
+                            addLog("DECISION", data.message || "Deciding...");
+                        }
+                    }
+
+                    if (payload.type === 'complete') {
+                        setStatus('complete');
+                        setFinalOutput(payload.final_output);
+                        setActiveNode(null);
+                        setMetrics(prev => ({ ...prev, iterations: payload.metrics.iterations || 0 }));
+                        addLog("SYSTEM", "🏁 Complete | Assets Ready");
+                    }
+
+                    if (payload.type === 'error') {
+                        setStatus('error');
+                        addLog("ERROR", payload.message);
+                    }
+                };
+
+                ws.current.onclose = () => {
+                    if (status !== 'complete') addLog("SYSTEM", "Connection Closed");
+                };
+            };
+
+            if (view === 'setup') {
+                return (
+                    <div style={{
+                        minHeight: '100vh',
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'radial-gradient(ellipse at center, #1f2937 0%, #050505 50%, #000000 100%)',
+                        padding: '1.5rem',
+                        overflowY: 'auto'
+                    }} className="custom-scrollbar">
+                        <div style={{ width: '100%', maxWidth: '80rem', padding: '3rem 0' }}>
+                            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+                                <div style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '0.75rem',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    borderRadius: '1rem',
+                                    marginBottom: '1rem',
+                                    border: '1px solid rgba(59, 130, 246, 0.2)'
+                                }}>
+                                    <span style={{ fontSize: '2rem' }}>⚡</span>
+                                </div>
+                                <h1 style={{
+                                    fontSize: '4rem',
+                                    fontWeight: 'bold',
+                                    letterSpacing: '-0.05em',
+                                    background: 'linear-gradient(to right, white, #93c5fd, #6b7280)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    backgroundClip: 'text',
+                                    marginBottom: '1rem',
+                                    margin: '0 0 1rem 0'
+                                }}>
+                                    NEXUS PRIME
+                                </h1>
+                                <p style={{ color: '#9ca3af', fontSize: '1.125rem', maxWidth: '48rem', margin: '0 auto' }}>
+                                    The Cognitive Content Engine. Select your archetype and dominate the feed.
+                                </p>
+                            </div>
+
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                gap: '1rem',
+                                marginBottom: '2rem'
+                            }}>
+                                <AvatarCard id="stark" name="The Stark" icon="🦾" desc="Witty, arrogant tech-genius." selected={config.avatar === 'stark'} onClick={(id) => setConfig({ ...config, avatar: id })} />
+                                <AvatarCard id="musk" name="The Titan" icon="🚀" desc="Urgent, first-principles thinker." selected={config.avatar === 'musk'} onClick={(id) => setConfig({ ...config, avatar: id })} />
+                                <AvatarCard id="jobs" name="The Visionary" icon="🍏" desc="Minimalist perfectionist." selected={config.avatar === 'jobs'} onClick={(id) => setConfig({ ...config, avatar: id })} />
+                                <AvatarCard id="viral_bro" name="Growth Hacker" icon="📈" desc="Data-driven thread writer." selected={config.avatar === 'viral_bro'} onClick={(id) => setConfig({ ...config, avatar: id })} />
+                                <div
+                                    onClick={() => setIsCustomBuilderOpen(true)}
+                                    style={{
+                                        cursor: 'pointer',
+                                        padding: '1.5rem',
+                                        borderRadius: '0.75rem',
+                                        border: config.avatar === 'custom' ? '2px solid #a855f7' : '2px dashed #4b5563',
+                                        background: config.avatar === 'custom' ? 'rgba(168, 85, 247, 0.1)' : 'transparent',
+                                        textAlign: 'center',
+                                        transition: 'all 0.3s',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '0.75rem'
+                                    }}
+                                >
+                                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem', color: '#a855f7' }}>+</div>
+                                    <h3 style={{ fontWeight: 'bold', color: 'white', margin: 0 }}>Create Custom</h3>
+                                    <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>Build your own unique persona DNA.</p>
+                                </div>
+                            </div>
+
+                            <div className="glass-panel" style={{ padding: '2rem', borderRadius: '1rem', maxWidth: '48rem', margin: '0 auto' }}>
+                                <div style={{ marginBottom: '1.5rem' }}>
+                                    <label style={{
+                                        display: 'block',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 'bold',
+                                        color: '#3b82f6',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.1em',
+                                        marginBottom: '0.5rem'
+                                    }}>
+                                        Mission Objective (Topic)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={config.topic}
+                                        onChange={(e) => setConfig({ ...config, topic: e.target.value })}
+                                        placeholder="e.g. Why AI Agents will replace traditional SaaS..."
+                                        style={{
+                                            width: '100%',
+                                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                            border: '1px solid #374151',
+                                            borderRadius: '0.75rem',
+                                            padding: '1rem',
+                                            fontSize: '1.125rem',
+                                            color: 'white',
+                                            outline: 'none'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                    <div>
+                                        <label style={{
+                                            display: 'block',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 'bold',
+                                            color: '#6b7280',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.1em',
+                                            marginBottom: '0.5rem'
+                                        }}>
+                                            Target Platform
+                                        </label>
+                                        <select
+                                            value={config.platform}
+                                            onChange={(e) => setConfig({ ...config, platform: e.target.value })}
+                                            style={{
+                                                width: '100%',
+                                                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                                border: '1px solid #374151',
+                                                borderRadius: '0.75rem',
+                                                padding: '0.75rem',
+                                                color: 'white',
+                                                outline: 'none',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <option value="linkedin">LinkedIn (Viral Stack)</option>
+                                            <option value="twitter">X / Twitter (Thread)</option>
+                                            <option value="blog">SEO Blog (Deep Dive)</option>
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                        <button
+                                            onClick={startWorkflow}
+                                            disabled={!config.topic}
+                                            style={{
+                                                width: '100%',
+                                                padding: '1rem',
+                                                borderRadius: '0.75rem',
+                                                fontWeight: 'bold',
+                                                fontSize: '1.125rem',
+                                                letterSpacing: '0.05em',
+                                                border: 'none',
+                                                cursor: config.topic ? 'pointer' : 'not-allowed',
+                                                backgroundColor: config.topic ? '#3b82f6' : '#374151',
+                                                color: config.topic ? 'white' : '#6b7280',
+                                                transition: 'all 0.3s',
+                                                boxShadow: config.topic ? '0 0 30px rgba(59, 130, 246, 0.5)' : 'none',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '0.5rem'
+                                            }}
+                                        >
+                                            ⚡ INITIATE NEURAL LINK
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <CustomAvatarBuilder
+                            isOpen={isCustomBuilderOpen}
+                            onClose={() => setIsCustomBuilderOpen(false)}
+                            initialParams={config.custom_params}
+                            onSave={(params) => {
+                                setConfig({ ...config, avatar: 'custom', custom_params: params });
+                                setIsCustomBuilderOpen(false);
+                            }}
+                        />
+                    </div>
+                );
+            }
+
+            return (
+                <div style={{ height: '100vh', width: '100%', display: 'flex', overflow: 'hidden', background: '#050505' }}>
+                    <div style={{ width: '20rem', borderRight: '1px solid #1f2937', background: '#0a0a0a', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem', borderBottom: '1px solid #1f2937' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                                <div style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#22c55e' }}>SYSTEM ONLINE</span>
+                            </div>
+                            <h2 style={{ fontWeight: 'bold', color: 'white', letterSpacing: '0.05em', margin: 0 }}>FLIGHT DECK</h2>
+                        </div>
+
+                        <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', borderBottom: '1px solid #1f2937' }}>
+                            <MetricGauge label="Creative" value={metrics.creative} />
+                            <MetricGauge label="Compliance" value={metrics.compliance} />
+                            <MetricGauge label="Engagement" value={metrics.engagement} subtitle={`Hook: ${Math.round(metrics.hookScore)}`} />
+                            <MetricGauge label="Facts" value={metrics.factsUsage} subtitle={`${metrics.keywordDensity}% KW`} />
+                        </div>
+
+                        <div style={{ padding: '1.5rem 1.5rem 1rem', borderBottom: '1px solid #1f2937' }}>
+                            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Context</h3>
+                            <div style={{ fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                {contextData.intent && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#6b7280' }}>Intent:</span>
+                                        <span style={{ color: '#60a5fa', fontWeight: 'bold', textTransform: 'uppercase' }}>{contextData.intent}</span>
+                                    </div>
+                                )}
+                                {contextData.keyword && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#6b7280' }}>Keyword:</span>
+                                        <span style={{ color: '#facc15', fontFamily: 'monospace' }}>{contextData.keyword}</span>
+                                    </div>
+                                )}
+                                {contextData.skeletonUsed && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#6b7280' }}>DNA:</span>
+                                        <span style={{ color: '#c084fc' }}>{contextData.skeletonUsed}</span>
+                                    </div>
+                                )}
+                                {metrics.iterations > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#6b7280' }}>Iterations:</span>
+                                        <span style={{ color: '#fb923c', fontWeight: 'bold' }}>{metrics.iterations}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div style={{ flex: 1, padding: '1rem', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'monospace', fontSize: '0.75rem', minHeight: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', marginBottom: '0.75rem', paddingBottom: '0.5rem', borderBottom: '1px solid #1f2937' }}>
+                                <span>💻</span>
+                                <span>EVENT LOG</span>
+                            </div>
+                            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '0.5rem' }} className="custom-scrollbar">
+                                {logs.map((log) => (
+                                    <div key={log.id} className="log-entry" style={{ color: '#9ca3af', borderLeft: '2px solid #1f2937', paddingLeft: '0.75rem', paddingTop: '0.25rem', paddingBottom: '0.25rem' }}>
+                                        <span style={{ fontSize: '0.625rem', color: '#6b7280', display: 'block' }}>{log.time}</span>
+                                        <span style={{ fontWeight: 'bold', color: log.node === 'ERROR' ? '#ef4444' : '#60a5fa' }}>
+                                            {log.node}:
+                                        </span> <span style={{ color: '#d1d5db' }}>{log.message}</span>
+                                    </div>
+                                ))}
+                                <div ref={logEndRef} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ flex: 1, background: '#050505', position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                        <div style={{ height: '4rem', borderBottom: '1px solid #1f2937', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', background: '#0a0a0a' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <span style={{ padding: '0.25rem 0.75rem', borderRadius: '9999px', background: '#1f2937', color: '#9ca3af', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', border: '1px solid #374151' }}>
+                                    {config.platform} Protocol
+                                </span>
+                                <span style={{ padding: '0.25rem 0.75rem', borderRadius: '9999px', background: 'rgba(37, 99, 235, 0.2)', color: '#60a5fa', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                                    Avatar: {config.avatar === 'custom' ? 'Custom Persona' : config.avatar}
+                                </span>
+                            </div>
+                            {status === 'complete' && (
+                                <button
+                                    onClick={() => navigator.clipboard.writeText(finalOutput)}
+                                    style={{
+                                        background: 'white',
+                                        color: 'black',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '0.5rem',
+                                        fontSize: '0.875rem',
+                                        fontWeight: 'bold',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.3s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    ✅ Copy to Clipboard
+                                </button>
+                            )}
+                        </div>
+
+                        <div style={{ flex: 1, padding: '3rem', overflowY: 'auto', position: 'relative' }} className="custom-scrollbar">
+                            <div className="scan-effect" style={{ opacity: 0.2, pointerEvents: 'none' }}></div>
+
+                            <div style={{ maxWidth: '48rem', margin: '0 auto', paddingBottom: '6rem' }}>
+                                {draftText ? (
+                                    <div style={{ fontSize: '1.125rem', lineHeight: '1.75' }}>
+                                        <div className="typing-cursor" style={{ whiteSpace: 'pre-wrap', fontFamily: 'sans-serif', color: '#d1d5db' }}>
+                                            {draftText}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ height: '24rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#374151', gap: '1rem' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <div style={{ width: '4rem', height: '4rem', border: '4px solid #1f2937', borderRadius: '50%', animation: 'spin 1s linear infinite', borderTopColor: '#3b82f6' }}></div>
+                                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <span style={{ fontSize: '1.5rem' }}>🧠</span>
+                                            </div>
+                                        </div>
+                                        <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>AWAITING NEURAL GENERATION...</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ width: '24rem', background: '#080808', borderLeft: '1px solid #1f2937', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem', borderBottom: '1px solid #1f2937' }}>
+                            <h2 style={{ fontWeight: 'bold', color: 'white', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                                <span style={{ color: '#3b82f6' }}>🔗</span>
+                                COGNITIVE PIPELINE
+                            </h2>
+                        </div>
+                        <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
+                            <div style={{ height: '100%', overflowY: 'auto' }} className="custom-scrollbar">
+                                <NeuralGraph activeNode={activeNode} />
+                            </div>
+                        </div>
+
+                        <div style={{ height: '12rem', borderTop: '1px solid #1f2937', padding: '1.5rem', background: '#0a0a0a' }}>
+                            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Active Agent Insight</h3>
+                            <div className="glass-panel" style={{ padding: '1rem', borderRadius: '0.5rem', height: 'calc(100% - 2rem)' }}>
+                                {activeNode ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#60a5fa', fontWeight: 'bold', fontSize: '0.875rem', textTransform: 'uppercase' }}>
+                                            <div style={{ width: '0.5rem', height: '0.5rem', background: '#60a5fa', borderRadius: '50%', animation: 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite' }}></div>
+                                            {activeNode} Node
+                                        </div>
+                                        <p style={{ fontSize: '0.75rem', color: '#9ca3af', lineHeight: '1.5', margin: 0 }}>
+                                            {activeNode === 'context_injection' && "Loading persona DNA and platform configuration..."}
+                                            {activeNode === 'research' && "Scouring global database for verified facts..."}
+                                            {activeNode === 'intent_analyzer' && "Analyzing intent and extracting SEO keywords..."}
+                                            {activeNode === 'router' && "Routing DNA structure based on intent compatibility..."}
+                                            {activeNode === 'blueprint_synthesizer' && "Synthesizing custom content structure..."}
+                                            {activeNode === 'writer' && "Generating content with persona voice and viral structure..."}
+                                            {activeNode === 'optimizer' && "Validating algorithmic compliance and readability..."}
+                                            {activeNode === 'director' && "Performing creative review and quality assessment..."}
+                                            {activeNode === 'decision' && "Evaluating quality thresholds and loop conditions..."}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <p style={{ fontSize: '0.75rem', color: '#6b7280', fontStyle: 'italic', margin: 0 }}>System Idle.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+
+    <style>
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .5;
+            }
+        }
+
+        @keyframes ping {
+
+            75%,
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+    </style>
+</body>
+
+</html>
