@@ -21,7 +21,7 @@ class WriterNode:
     def execute(self, state: ContentState) -> ContentState:
         """Execute writing with surgical rewrite capability"""
         
-        logger.info("✍️  [Phase 3] Writer Node: Generating content...")
+        logger.info("âœï¸  [Phase 3] Writer Node: Generating content...")
         logger.debug(f"Input State Keys: {list(state.keys())}")
         
         avatar = get_avatar(
@@ -42,7 +42,7 @@ class WriterNode:
         
         if is_revision:
             feedback = state['diagnostic_vector'].reasoning
-            logger.info(f"  🔄 Revision #{state['diagnostic_vector'].attempt_count}")
+            logger.info(f"  ðŸ”„ Revision #{state['diagnostic_vector'].attempt_count}")
             logger.debug(f"Feedback received: {feedback}")
             
             # FIX: Analyze which sections need rewriting
@@ -54,16 +54,16 @@ class WriterNode:
             logger.info(f"Needs Full Rewrite: {needs_full_rewrite}")
             
             if not needs_full_rewrite:
-                logger.info("  🔬 Performing surgical rewrite...")
+                logger.info("  ðŸ”¬ Performing surgical rewrite...")
                 return self._surgical_rewrite(state, avatar, targets, feedback)
         
         # Full content generation (first attempt or structural issues)
-        logger.info("  📝 Full content generation...")
+        logger.info("  ðŸ“ Full content generation...")
         
         state['context_layer'].persona_voice = avatar.system_instruction
         
         # STEP 1: Generate Hooks
-        logger.info("  🎣 Generating hook variations (JSON mode)...")
+        logger.info("  ðŸŽ£ Generating hook variations (JSON mode)...")
         
         hook_prompt = self.prompt_builder.build_hook_prompt_json(
             avatar=avatar,
@@ -93,11 +93,11 @@ class WriterNode:
             best_idx = int(hooks_data.get('best', 1)) - 1
             selected_hook = hooks[best_idx] if best_idx < len(hooks) else hooks[0]
             
-            logger.info(f"  ✅ Parsed {len(hooks)} hooks via JSON")
+            logger.info(f"  âœ… Parsed {len(hooks)} hooks via JSON")
             logger.debug(f"Selected Hook: {selected_hook}")
             
         except json.JSONDecodeError:
-            logger.warning("  ⚠️ JSON parse failed, using regex fallback...")
+            logger.warning("  âš ï¸ JSON parse failed, using regex fallback...")
             hooks = []
             for i in range(1, 4):
                 match = re.search(rf'HOOK_{i}:\s*(.+?)(?=\n|HOOK_|BEST:|$)', hook_response, re.DOTALL)
@@ -116,7 +116,7 @@ class WriterNode:
         state['draft_artifact'].hook = selected_hook
         
         # STEP 2: Generate Body
-        logger.info("  📝 Constructing body...")
+        logger.info("  ðŸ“ Constructing body...")
         
         skeleton_obj = get_skeleton(state['user_config'].platform)
         examples_text = ""
@@ -145,10 +145,25 @@ class WriterNode:
         body_match = re.search(r'BODY:\s*(.+?)(?=$)', body_response, re.DOTALL | re.IGNORECASE)
         body_content = body_match.group(1).strip() if body_match else body_response
         
-        # FIX: Remove hook from body if duplicated
-        if selected_hook and body_content.strip().startswith(selected_hook.strip()):
-             logger.info("Removing duplicated hook from body")
-             body_content = body_content.strip()[len(selected_hook.strip()):].strip()
+        # FIX: Remove ALL occurrences of hook from body (not just at the start)
+        # The LLM sometimes includes the hook multiple times in the body
+        if selected_hook:
+            hook_pattern = re.escape(selected_hook.strip())
+            # Remove hook if it appears at the beginning with optional emoji/formatting
+            body_lines = body_content.split('\n')
+            cleaned_lines = []
+            
+            for line in body_lines:
+                line_stripped = line.strip()
+                # Skip lines that are just the hook (with or without emoji/formatting)
+                if line_stripped and not re.match(rf'^[ðŸ’¡ðŸ”¥âš¡ðŸŽ¯ðŸ“Œ]*\s*{hook_pattern}\s*[ðŸ’¡ðŸ”¥âš¡ðŸŽ¯ðŸ“Œ]*$', line_stripped, re.IGNORECASE):
+                    cleaned_lines.append(line)
+                elif not line_stripped:
+                    # Keep empty lines for formatting
+                    cleaned_lines.append(line)
+            
+            body_content = '\n'.join(cleaned_lines).strip()
+            logger.info(f"Removed hook duplications from body (if any)")
         
         state['draft_artifact'].body = body_content
         logger.debug(f"Final Body Content: {body_content[:200]}...")
@@ -170,7 +185,7 @@ class WriterNode:
         current_hook = state['draft_artifact'].hook
         current_body = state['draft_artifact'].body
         
-        logger.info(f"  🎯 Targets: Hook={targets['hook']}, Body={targets['body']}")
+        logger.info(f"  ðŸŽ¯ Targets: Hook={targets['hook']}, Body={targets['body']}")
         
         # Generate surgical rewrite prompt
         surgical_prompt = self.prompt_builder.build_surgical_rewrite_prompt(
@@ -194,7 +209,7 @@ class WriterNode:
             hook_match = re.search(r'HOOK:\s*(.+?)(?=\n\nBODY:|$)', rewrite_response, re.DOTALL | re.IGNORECASE)
             if hook_match:
                 state['draft_artifact'].hook = hook_match.group(1).strip()
-                logger.info("  ✅ Hook rewritten")
+                logger.info("  âœ… Hook rewritten")
                 logger.debug(f"New Hook: {state['draft_artifact'].hook}")
         
         if targets['body']:
@@ -202,14 +217,25 @@ class WriterNode:
             if body_match:
                 body_content = body_match.group(1).strip()
                 
-                # Check against current hook
+                # Apply same hook deduplication logic for surgical rewrites
                 current_hook = state['draft_artifact'].hook
-                if current_hook and body_content.strip().startswith(current_hook.strip()):
-                     logger.info("Removing duplicated hook from rewritten body")
-                     body_content = body_content.strip()[len(current_hook.strip()):].strip()
+                if current_hook:
+                    hook_pattern = re.escape(current_hook.strip())
+                    body_lines = body_content.split('\n')
+                    cleaned_lines = []
+                    
+                    for line in body_lines:
+                        line_stripped = line.strip()
+                        if line_stripped and not re.match(rf'^[ðŸ’¡ðŸ”¥âš¡ðŸŽ¯ðŸ“Œ]*\s*{hook_pattern}\s*[ðŸ’¡ðŸ”¥âš¡ðŸŽ¯ðŸ“Œ]*$', line_stripped, re.IGNORECASE):
+                            cleaned_lines.append(line)
+                        elif not line_stripped:
+                            cleaned_lines.append(line)
+                    
+                    body_content = '\n'.join(cleaned_lines).strip()
+                    logger.info("Removed hook duplications from rewritten body (if any)")
                 
                 state['draft_artifact'].body = body_content
-                logger.info("  ✅ Body rewritten")
+                logger.info("  âœ… Body rewritten")
                 logger.debug(f"New Body: {state['draft_artifact'].body[:200]}...")
         
         # Reassemble
