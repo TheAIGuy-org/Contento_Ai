@@ -13,7 +13,7 @@ from backend.utils.logger import get_logger
 # Configure logging
 logger = get_logger("NexusAPI")
 
-app = FastAPI(title="Nexus Prime API", version="2.0.0")
+app = FastAPI(title="Contento AIAPI", version="2.0.0")
 
 # CORS - Allow all origins for development
 app.add_middleware(
@@ -41,7 +41,7 @@ async def health_check():
     logger.debug("Health check requested")
     return {
         "status": "active",
-        "system": "Nexus Prime Core",
+        "system": "Contento AICore",
         "version": "2.0.0",
         "nodes": 9
     }
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     import uvicorn
     
     # Run server
-    logger.info("🚀 Starting Nexus Prime Server...")
+    logger.info("🚀 Starting Contento AIServer...")
     logger.info("📡 WebSocket endpoint: ws://localhost:8000/ws/generate")
     logger.info("🌐 Health check: http://localhost:8000/health")
     

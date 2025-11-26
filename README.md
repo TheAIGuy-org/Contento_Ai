@@ -1,7 +1,7 @@
 # Nexus Prime: Apex-Impact Architecture
 
 ## Overview
-Nexus Prime is a state-of-the-art content generation system using LangGraph and AI agents to produce "BADASS" viral content. It implements a cyclic state machine with 6 specialized neural nodes.
+Contento AIis a state-of-the-art content generation system using LangGraph and AI agents to produce "BADASS" viral content. It implements a cyclic state machine with 6 specialized neural nodes.
 
 ## Architecture
 
