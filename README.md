@@ -1,7 +1,7 @@
-# Nexus Prime: Apex-Impact Architecture
+# Contento AI: Content Impact Architecture
 
 ## Overview
-Contento AIis a state-of-the-art content generation system using LangGraph and AI agents to produce "BADASS" viral content. It implements a cyclic state machine with 6 specialized neural nodes.
+Contento AI is a state-of-the-art content generation system using LangGraph and AI agents to produce "BADASS" viral content. It implements a cyclic state machine with 6 specialized neural nodes.
 
 ## Architecture
 
@@ -186,23 +186,9 @@ pytest --cov=backend tests/
 
 ## Performance
 
-- **Average Generation Time**: 15-30 seconds
+- **Average Generation Time**: 10-20 seconds
 - **Success Rate**: ~85% first attempt
-- **Iteration Rate**: 1.3 iterations average
-
-## Troubleshooting
-
-### Issue: API Rate Limits
-**Solution**: Add delays between requests or upgrade API tier
-
-### Issue: Low Creative Scores
-**Solution**: Adjust CREATIVE_THRESHOLD in .env or improve prompts
-
-### Issue: Content Too Generic
-**Solution**: Use more specific topics and add custom avatar params
-
-## License
-MIT License
+- **Iteration Rate**: 2-3 iterations average
 
 ## Support
 For issues and questions, open a GitHub issue.
